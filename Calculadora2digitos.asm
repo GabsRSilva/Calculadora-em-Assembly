@@ -6,6 +6,8 @@ section .data
     operando2Len equ $-operando2
     operador: db "Entre com a operacao( + , - , / , * ): ", 10
     operadorLen equ $-operador
+    resultadoDecimal: db "O resultado e: ",10
+    resultadoDecimalLen equ $-resultadoDecimal
    
     
 section     .bss
@@ -17,7 +19,7 @@ section     .bss
     op:         resb 10
     conta:      resb 4
     aux:        resb 4
-    valorBinario:   resb 10
+    valorAux:   resb 10
 
 section .text
 global main
@@ -166,7 +168,7 @@ soma:
     add     eax, ebx ; Soma dos valores inteiros
     mov     [conta], eax;
 
-    jmp     resultado
+    jmp     conversao
     
 subtracao:
     mov     eax,[op1]
@@ -174,15 +176,15 @@ subtracao:
     sub     eax, ebx
     mov     [conta], eax
     
-    jmp     resultado
+    jmp     conversao
 
 multiplicacao:
-    mov     [op1], ax
+    mov     eax,[op1] 
     mov     ebx,[op2]
     mul     ebx
     mov     [conta], ax
     
-    jmp     resultado
+    jmp     conversao
 
 ;TESTE
 divisao:
@@ -190,44 +192,86 @@ divisao:
     mov ebx, [op2]
     div ebx
     mov [conta], ax
+    mov ebx, 10
+    mul ebx
+    mov [conta], ax
     
-    jmp resultado
+    jmp conversao1
 
-resultado:
+conversao:
     
-    mov al, [conta] ;copia o primeiro dígito
-    movzx ax, al
-    add ax, '0' ;converte de ascii para decimal
-    mov bx, 10
-    div bx ;obter n*10 em ax
-    mov bx, [aux] ;copiar o valor atual do operando 1 em bx
-    add ax, bx ;somar o valor atual do operando 1 com o valor do novo dígito processado
-    mov [aux], ax ;atualizar valor do operando 1 com o dígito processado
+    xor eax, eax
+    mov eax, [conta]
+    mov [aux],eax
+    mov ebx, 10
+    div ebx
+    mov [aux], eax
+    mov [valorAux], edx
+    add eax, '0'
+    add edx, '0'
+    mov [aux], eax
+    mov [valorAux], edx
+      
     
+    mov eax, 4; system call para sys_write
+    mov ebx, 1
+    mov ecx, resultadoDecimal
+    mov edx, resultadoDecimalLen
+    int 80h ; chamada do kernel
     
-    xor eax,eax
-    ;somar segundo dígito
-    mov al, [conta + 1] ;copia o segundo dígito
-    movzx ax, al
-    add ax, '0' ;converte de ascii para decimal
-    mov bx, 10
-
-    mov bx, [aux] ;copiar o valor atual do operando 1 em bx
-    add ax, bx ;somar o valor atual do operando 1 com o valor do novo dígito processado
-    mov [aux], ax ;atualizar valor do operando 1 com o dígito processado
-    
-    mov     ebp, esp; for correct debugging
+    mov     ebp, esp ; for correct debugging
     mov     eax,4    ;serviço do SO sys_write
     mov     ebx,1    ;file deor (stdout)
-    mov     ecx,aux   ;carrega em ecx o endereco do text
-    mov     edx,2 ;tamanho da mensagem  
+    mov     ecx,aux  ;carrega em ecx o endereco do text
+    mov     edx,1    ;tamanho da mensagem
+    mov     ebp, esp ; for correct debugging
+    int     0x80     ;chamada da interrupcao 80h  (chamada ao SO)
+    
+    mov     eax,4    ;serviço do SO sys_write
+    mov     ebx,1    ;file deor (stdout)
+    mov     ecx,valorAux  ;carrega em ecx o endereco do text
+    mov     edx,1    ;tamanho da mensagem
     int     0x80     ;chamada da interrupcao 80h  (chamada ao SO)
     jmp     sair
         
+conversao1:
+
+    xor eax, eax
+    mov eax, [conta]
+    mov [aux],eax
+    mov ebx, 10
+    div ebx
+    mov [aux], eax
+    mov [valorAux], edx
+    add eax, '0'
+    add edx, '0'
+    mov [aux], eax
+    mov [valorAux], edx
+      
+    
+    mov eax, 4; system call para sys_write
+    mov ebx, 1
+    mov ecx, resultadoDecimal
+    mov edx, resultadoDecimalLen
+    int 80h ; chamada do kernel
+    
+    ;mov     ebp, esp ; for correct debugging
+    ;mov     eax,4    ;serviço do SO sys_write
+    ;mov     ebx,1    ;file deor (stdout)
+    ;mov     ecx,valorAux  ;carrega em ecx o endereco do text
+    ;mov     edx,1    ;tamanho da mensagem
+    ;mov     ebp, esp ; for correct debugging
+    ;int     0x80     ;chamada da interrupcao 80h  (chamada ao SO)
+    
+    mov     eax,4    ;serviço do SO sys_write
+    mov     ebx,1    ;file deor (stdout)
+    mov     ecx,aux  ;carrega em ecx o endereco do text
+    mov     edx,1    ;tamanho da mensagem
+    int     0x80     ;chamada da interrupcao 80h  (chamada ao SO)
+    jmp     sair
+
 sair:     
-    
-    
-                                    
+                           
     mov     eax,1    ;system call number (sys_exit)
     int     0x80     ;call kernel
     ret
